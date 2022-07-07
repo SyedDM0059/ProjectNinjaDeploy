@@ -1,26 +1,27 @@
 package com.example.chatbot;
 
-import org.apache.http.HttpException;
-import org.apache.http.client.HttpResponseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DialogflowFulfillment {
     // To hold all related info for each unique user
-    JSONObject userInfo = new JSONObject();
+    static JSONObject userInfo = new JSONObject();
     //List of business activities that are marked as excluded
     List<String> excludedBizActivities = new ArrayList<>();
+    Map<String, String> BizActivities = new HashMap<>();
     RestTemplate restTemplate = new RestTemplate();
+    ObjectTypesGenerator objectTypesGenerator = new ObjectTypesGenerator();
     TokenManagement tokenManagement = new TokenManagement();
-
+    HttpHeaders headers = new HttpHeaders();
     public JSONObject fulfillment(JSONObject payload) {
 
         // Parse the payload to retrieve the relevant information
@@ -52,11 +53,6 @@ public class DialogflowFulfillment {
 
                 int percentage = Integer.parseInt(params.getString("percentage").substring(0, params.getString("percentage").lastIndexOf("%")));
 
-                // If new user, add mappings for Business Activity, Exposure, BizActs (String of users input business activities), Exp (String of users input exposure)
-                if (!userInfo.has(user)) {
-                    userInfo.put(user, new JSONObject("{\"BA\":0,\"Exposure\":0, \"BizActs\":\"\", \"Exp\":\"\"}"));
-                }
-
                 boolean BA = intent.equals("BA");
 
                 // Update user percentage and input data
@@ -69,7 +65,7 @@ public class DialogflowFulfillment {
 
                     fulfillment.put("outputContexts", BA ? turnoverContext : nameContext);
                     fulfillment.put("fulfillmentText", BA ? "What is your company's annual turnover?" : "Great, thanks! Now we just need to know a bit more about you. What is your name?");
-                    userInfo.put(user, new JSONObject("{\"BA\":0,\"Exposure\":0, \"BizActs\":\"\", \"Exp\":\"\"}"));
+
                 } else {
 
                     fulfillment.put("outputContexts", BA ? quoteContext : exposureContext);
@@ -81,7 +77,8 @@ public class DialogflowFulfillment {
 
                         fulfillment.put("fulfillmentText", BA ? "Total business activity cannot be more than 100%, please state your business activities again" :
                                 "Total exposure cannot be more than 100%, please state your exposure again");
-                        userInfo.put(user, new JSONObject("{\"BA\":0,\"Exposure\":0, \"BizActs\":\"\", \"Exp\":\"\"}"));
+                        userInfo.getJSONObject(user).put(BA ? "BA" : "Exposure", 0);
+                        userInfo.getJSONObject(user).put(BA ? "BizActs" : "Exp", "");
                     }
                 }
                 break;
@@ -89,11 +86,12 @@ public class DialogflowFulfillment {
             case "Welcome - yes":
             case "reset":
 
+                userInfo.put(user, new JSONObject("{\"BA\":0,\"Exposure\":0, \"BizActs\":\"\", \"Exp\":\"\", \"turnover\":0}"));
                 // Reset the list of excluded business activities so that it is refreshed whenever the conversation restarts
                 excludedBizActivities = new ArrayList<>();
-                StringBuilder BizActs = new StringBuilder("Please enter your business activity and its corresponding percentage (eg. Retail: 20%/ B0001: 30%):\n\n");
+                StringBuilder BizActsString = new StringBuilder("Please enter your business activity and its corresponding percentage (eg. Retail: 20%/ B0001: 30%):\n\n");
 
-                HttpHeaders headers = new HttpHeaders();
+
                 HttpEntity<String> httpEntity = new HttpEntity<>("", headers);
 
                 // Retrieve the risk details from the DCM risk details API
@@ -123,25 +121,33 @@ public class DialogflowFulfillment {
                 // To generate the String of business activities to display to user, as well as to update the list of excluded business activites
                 for (int i = 1; i < activitiesList.length(); i++) {
                     JSONObject activity = activitiesList.getJSONObject(i);
-                    BizActs.append(activity.getString("key")).append(": ").append(activity.getString("value")).append("\n");
+                    BizActivities.put(activity.getString("key"), activity.getString("category"));
+                    BizActsString.append(activity.getString("key")).append(": ").append(activity.getString("value")).append("\n");
                     if (activity.getString("category").equals("excluded")) {
 
-                        excludedBizActivities.add(activity.getString("value"));
+                        excludedBizActivities.add(activity.getString("key") + " " + activity.getString("value"));
                     }
                 }
 
                 fulfillment.put("outputContexts", quoteContext);
-                fulfillment.put("fulfillmentText", BizActs.toString());
+                fulfillment.put("fulfillmentText", BizActsString.toString());
 
 
                 break;
             case "ET":
-                int turnover = params.getJSONObject("unit-currency").getInt("amount");
-
+                int turnover = params.getInt("number");
+                userInfo.getJSONObject(user).put("turnover", turnover);
                 if (turnover <= 0) {
                     fulfillment.put("outputContexts", turnoverContext);
                     fulfillment.put("fulfillmentText", "Annual turnover must be a positive non-zero number, please re-enter");
                 }
+                break;
+
+            case "Email":
+
+                JSONObject objectTypes = objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
+
+                System.out.println(objectTypes);
                 break;
         }
         return fulfillment;
