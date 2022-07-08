@@ -36,6 +36,8 @@ public class DialogflowFulfillment {
         JSONArray turnoverContext = new JSONArray("[{\"name\":\"" + sessionID + "/contexts/turnover\", \"lifespanCount\": 2}]");
         JSONArray exposureContext = new JSONArray("[{\"name\":\"" + sessionID + "/contexts/exposure\", \"lifespanCount\": 2}]");
         JSONArray nameContext = new JSONArray("[{\"name\":\"" + sessionID + "/contexts/name\", \"lifespanCount\": 99}]");
+        JSONArray nameFollowUpContext = new JSONArray("[{\"name\":\"" + sessionID + "/contexts/name-followup\", \"lifespanCount\": 2}]");
+
 
         // To be returned to dialogflow to respond to user. Refer to https://cloud.google.com/dialogflow/es/docs/reference/rest/v2/WebhookResponse to view the correct format to respond to dialogflow
         JSONObject fulfillment = new JSONObject();
@@ -143,8 +145,15 @@ public class DialogflowFulfillment {
                 }
                 break;
 
+            case "Name":
+                String name = params.getJSONObject("person").getString("name");
+
+                fulfillment.put("outputContexts", nameFollowUpContext);
+                fulfillment.put("fulfillmentText", "Hi " + name + "!\nYour current number is " + user.split(":")[1] + ",\nwould you like to enter a new number?");
+                break;
             case "Email":
 
+                System.out.println("User: " + userInfo.getJSONObject(user));
                 JSONObject objectTypes = objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
 
                 System.out.println(objectTypes);
