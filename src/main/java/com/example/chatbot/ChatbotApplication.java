@@ -16,7 +16,6 @@ public class ChatbotApplication {
 	@Autowired
 	private QuestionRepository questionRepository;
 	public static void main(String[] args) {
-
 		SpringApplication.run(ChatbotApplication.class, args);
 	}
 
