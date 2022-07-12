@@ -1,5 +1,6 @@
 package com.example.chatbot;
 
+import com.example.chatbot.Management.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.*;
@@ -57,31 +58,19 @@ public class DialogflowFulfillment {
                         String cusId = customerIdManager.customerIdGeneration();
                         //Update UserInfo with CustomerId
                         userInfo.getJSONObject(user).put("CustomerId", cusId);
-//                        System.out.println(userInfo);
-
                         //GetProposalId
-                        //ProposalId Generated!
                         String propId = proposalIdManager.proposalIdGeneration(cusId);
-                        //lobId
-//                    String lobId = proposalId.getJSONObject("data").getString("lobId");
-//                        System.out.println("-----------");
-//                        System.out.println(propId);
-//                    System.out.println("-----------");
-//                    System.out.println(lobId);
                         //Update userInfo with ProposalId
                         userInfo.getJSONObject(user).put("ProposalId", propId);
-//                        System.out.println("-----------");
-//                        System.out.println(userInfo);
-//                        System.out.println("-----------");
-//                    //FullUpdate
+                        //FullUpdate
                         JSONObject fullUp = fullUpdateManagement.FullUpdateGeneration(cusId, propId);
-                        System.out.println(fullUp);
-                        System.out.println("-----------");
 
                     } catch(HttpClientErrorException e){
+                        System.out.println("----------");
                         System.out.println("Not working client error");
 
                     } catch (HttpServerErrorException e){
+                        System.out.println("----------");
                         System.out.println("Not working");
                         break;
                     }
@@ -114,12 +103,12 @@ public class DialogflowFulfillment {
                     code = response.getStatusCode();
                     System.out.println(code);
                 } catch (HttpServerErrorException e){
+                    System.out.println("----------");
                     System.out.println("Not working");
                     break;
                 }
                 JSONObject riskDetails = new JSONObject(response.getBody());
                 activitiesList = riskDetails.getJSONObject("data").getJSONObject("customerCategory").getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailDataGroups").getJSONObject(0).getJSONArray("dataDetailAttributes").getJSONObject(0).getJSONArray("options");
-
                 break;
             case "BA":
             case "Exposure":
@@ -207,8 +196,9 @@ public class DialogflowFulfillment {
 
                 System.out.println("User: " + userInfo.getJSONObject(user));
                 objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
-
-                httpEntity = new HttpEntity<>("", authHeadersManagement.AuthHeadersNoLength());
+                HttpHeaders headers = authHeadersManagement.AuthHeadersNoLength();
+                headers.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                httpEntity = new HttpEntity<>("", headers);
                 ResponseEntity<String> resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
                                 userInfo.getJSONObject(user).getString("ProposalId") +
                                 "/re-calculate",
