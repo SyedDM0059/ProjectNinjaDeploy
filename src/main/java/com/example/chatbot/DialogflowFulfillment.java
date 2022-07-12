@@ -22,6 +22,8 @@ public class DialogflowFulfillment {
     ObjectTypesGenerator objectTypesGenerator = new ObjectTypesGenerator();
     TokenManagement tokenManagement = new TokenManagement();
     HttpHeaders headers = new HttpHeaders();
+    CustomerIdManagement customerIdManager = new CustomerIdManagement();
+    ProposalIdManagement proposalIdManager = new ProposalIdManagement();
     public JSONObject fulfillment(JSONObject payload) {
 
         // Parse the payload to retrieve the relevant information
@@ -87,8 +89,51 @@ public class DialogflowFulfillment {
             case "quote-start":
             case "Welcome - yes":
             case "reset":
+                if (!userInfo.has(user)) {
+                    userInfo.put(user, new JSONObject("{\"BA\":0,\"Exposure\":0, \"BizActs\":\"\", \"Exp\":\"\", \"CustomerId\":\"\", \"ProposalId\":\"\", \"turnover\":0}"));
+                    try{
+                        System.out.println("***********");
 
-                userInfo.put(user, new JSONObject("{\"BA\":0,\"Exposure\":0, \"BizActs\":\"\", \"Exp\":\"\", \"turnover\":0}"));
+                        String cusId = customerIdManager.customerIdGeneration();
+                        //Update UserInfo with CustomerId
+                        userInfo.getJSONObject(user).put("CustomerId", cusId);
+//                        System.out.println(userInfo);
+
+                        //GetProposalId
+                        //ProposalId Generated!
+                        String propId = proposalIdManager.proposalIdGeneration(cusId);
+                        //lobId
+//                    String lobId = proposalId.getJSONObject("data").getString("lobId");
+//                        System.out.println("-----------");
+//                        System.out.println(propId);
+//                    System.out.println("-----------");
+//                    System.out.println(lobId);
+                        //Update userInfo with ProposalId
+                        userInfo.getJSONObject(user).put("ProposalId", propId);
+//                        System.out.println("-----------");
+//                        System.out.println(userInfo);
+//                        System.out.println("-----------");
+//                    //FullUpdate
+                    JSONObject fullUp = FullUpdateManagement.FullUpdateGeneration(cusId, propId);
+//                    System.out.println(fullUp);
+                    System.out.println("-----------");
+
+                    } catch(HttpClientErrorException e){
+                        System.out.println("Not working client error");
+
+                    } catch (HttpServerErrorException e){
+                        System.out.println("Not working");
+                        break;
+                    }
+                } else{
+                    userInfo.getJSONObject(user).put("BA",0);
+                    userInfo.getJSONObject(user).put("Exposure",0);
+                    userInfo.getJSONObject(user).put("BizActs","");
+                    userInfo.getJSONObject(user).put("Exp","");
+                    userInfo.getJSONObject(user).put("turnover",0);
+                }
+
+
                 // Reset the list of excluded business activities so that it is refreshed whenever the conversation restarts
                 excludedBizActivities = new ArrayList<>();
                 StringBuilder BizActsString = new StringBuilder("Please enter your business activity and its corresponding percentage (eg. Retail: 20%/ B0001: 30%):\n\n");
@@ -154,9 +199,15 @@ public class DialogflowFulfillment {
             case "Email":
 
                 System.out.println("User: " + userInfo.getJSONObject(user));
-                JSONObject objectTypes = objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
+                objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
 
-                System.out.println(objectTypes);
+                httpEntity = new HttpEntity<String>("",AuthHeadersManagement.AuthHeadersNoLength());
+                ResponseEntity<String> resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
+                                userInfo.getJSONObject(user).getString("ProposalId") +
+                                "/re-calculate",
+                        HttpMethod.GET, httpEntity, String.class);
+                JSONObject proposal = new JSONObject(resp.getBody());
+                System.out.println(proposal.getJSONObject("quotations"));
                 break;
         }
         return fulfillment;
