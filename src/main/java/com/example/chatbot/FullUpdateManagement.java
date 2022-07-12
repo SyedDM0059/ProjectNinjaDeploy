@@ -8,12 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 public class FullUpdateManagement {
-    static TokenManagement tokenManager = new TokenManagement();
-    static CustomerIdManagement customerIdManager = new CustomerIdManagement();
-    static RestTemplate restTemplateFullUpdate = new RestTemplate();
+    AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
+    TokenManagement tokenManager = new TokenManagement();
+    RestTemplate restTemplateFullUpdate = new RestTemplate();
 
-    public static JSONObject FullUpdateGeneration(String cusId, String propId) {
-        HttpHeaders FullUpdateAuthHeaders = AuthHeadersManagement.AuthHeaders("4330");
+    public JSONObject FullUpdateGeneration(String cusId, String propId) {
+
+        HttpHeaders FullUpdateAuthHeaders = authHeadersManagement.AuthHeaders("4330");
         String tok = tokenManager.CusPropFullTokenization();
         FullUpdateAuthHeaders.setBearerAuth(tok);
         HttpEntity<String> httpEntityFullUpdate = new HttpEntity<>("{\n" +

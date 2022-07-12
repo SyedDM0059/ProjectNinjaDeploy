@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class DialogflowFulfillment {
     // To hold all related info for each unique user
-    static JSONObject userInfo = new JSONObject();
+    JSONObject userInfo = new JSONObject();
     //List of business activities that are marked as excluded
     List<String> excludedBizActivities = new ArrayList<>();
     Map<String, String> BizActivities = new HashMap<>();
@@ -24,6 +24,8 @@ public class DialogflowFulfillment {
     HttpHeaders headers = new HttpHeaders();
     CustomerIdManagement customerIdManager = new CustomerIdManagement();
     ProposalIdManagement proposalIdManager = new ProposalIdManagement();
+    FullUpdateManagement fullUpdateManagement = new FullUpdateManagement();
+    AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
     JSONArray activitiesList;
     public JSONObject fulfillment(JSONObject payload) {
 
@@ -72,8 +74,8 @@ public class DialogflowFulfillment {
 //                        System.out.println(userInfo);
 //                        System.out.println("-----------");
 //                    //FullUpdate
-                        JSONObject fullUp = FullUpdateManagement.FullUpdateGeneration(cusId, propId);
-//                    System.out.println(fullUp);
+                        JSONObject fullUp = fullUpdateManagement.FullUpdateGeneration(cusId, propId);
+                        System.out.println(fullUp);
                         System.out.println("-----------");
 
                     } catch(HttpClientErrorException e){
@@ -172,8 +174,6 @@ public class DialogflowFulfillment {
 
                 StringBuilder BizActsString = new StringBuilder("Please enter your business activity and its corresponding percentage (eg. Retail: 20%/ B0001: 30%):\n\n");
 
-
-
                 // To generate the String of business activities to display to user, as well as to update the list of excluded business activites
                 for (int i = 1; i < activitiesList.length(); i++) {
                     JSONObject activity = activitiesList.getJSONObject(i);
@@ -184,10 +184,8 @@ public class DialogflowFulfillment {
                         excludedBizActivities.add(activity.getString("key") + " " + activity.getString("value"));
                     }
                 }
-
                 fulfillment.put("outputContexts", quoteContext);
                 fulfillment.put("fulfillmentText", BizActsString.toString());
-
 
                 break;
             case "ET":
@@ -210,7 +208,7 @@ public class DialogflowFulfillment {
                 System.out.println("User: " + userInfo.getJSONObject(user));
                 objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
 
-                httpEntity = new HttpEntity<>("", AuthHeadersManagement.AuthHeadersNoLength());
+                httpEntity = new HttpEntity<>("", authHeadersManagement.AuthHeadersNoLength());
                 ResponseEntity<String> resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
                                 userInfo.getJSONObject(user).getString("ProposalId") +
                                 "/re-calculate",
