@@ -8,11 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 public class ProposalIdManagement {
-    static TokenManagement tokenManager = new TokenManagement();
-    static RestTemplate restTemplateProposalId = new RestTemplate();
-
+    TokenManagement tokenManager = new TokenManagement();
+    RestTemplate restTemplateProposalId = new RestTemplate();
+    AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
     public String proposalIdGeneration(String cusId){
-        HttpHeaders ProposalAuthHeaders = AuthHeadersManagement.AuthHeaders("130");
+        HttpHeaders ProposalAuthHeaders = authHeadersManagement.AuthHeaders("130");
         String tok = tokenManager.CusPropFullTokenization();
         ProposalAuthHeaders.setBearerAuth(tok);
         HttpEntity<String> httpEntityProposal = new HttpEntity<>("{\"name\":\"Proposal-07-July-2022-0334\"," +

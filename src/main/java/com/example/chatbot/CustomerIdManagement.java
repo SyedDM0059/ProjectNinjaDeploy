@@ -1,6 +1,5 @@
 package com.example.chatbot;
 
-import com.example.chatbot.TokenManagement;
 import org.json.JSONObject;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -9,10 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 public class CustomerIdManagement {
-    static TokenManagement tokenManager = new TokenManagement(); // call tok
-    static RestTemplate restTemplateCustomerId = new RestTemplate();
+    TokenManagement tokenManager = new TokenManagement(); // call tok
+    RestTemplate restTemplateCustomerId = new RestTemplate();
+    AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
     public String customerIdGeneration(){
-        HttpHeaders CustomerAuthHeaders = AuthHeadersManagement.AuthHeaders("699");
+        HttpHeaders CustomerAuthHeaders = authHeadersManagement.AuthHeaders("699");
         String tok = tokenManager.CusPropFullTokenization();
         CustomerAuthHeaders.setBearerAuth(tok);
         HttpEntity<String> httpEntityCustomer = new HttpEntity<>("{\"dateOfBirth\":null,\"dateOfDeath\":null,\"description\":\"\",\"email\":\"\"," +
