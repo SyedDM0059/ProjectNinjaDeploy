@@ -1,4 +1,4 @@
-package com.example.chatbot;
+package com.example.chatbot.Management;
 
 import org.json.JSONObject;
 import org.springframework.http.HttpEntity;
