@@ -25,8 +25,7 @@ public class CustomerIdManagement {
         ResponseEntity<String> customerIdResponse = restTemplateCustomerId.exchange("https://dev.apis.discovermarket.com/customer/v2/customers",
                 HttpMethod.POST, httpEntityCustomer, String.class);
         JSONObject customerId = new JSONObject(customerIdResponse.getBody());
-        String cusId = (customerId.getJSONObject("data").getString("id"));
-        return cusId;
+        return customerId.getJSONObject("data").getString("id");
     }
 
 }
