@@ -29,6 +29,7 @@ public class DialogflowFulfillment {
     AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
     HttpHeaders reCalcHeaders = authHeadersManagement.AuthHeadersNoLength();
     JSONArray activitiesList;
+    ResponseEntity<String> BAresponse = null;
     public JSONObject fulfillment(JSONObject payload) {
 
         // Parse the payload to retrieve the relevant information
@@ -141,34 +142,36 @@ public class DialogflowFulfillment {
 
                 // Retrieve the risk details from the DCM risk details API
                 HttpStatus code;
-                ResponseEntity<String> response;
-                try {
-                    System.out.println("***********");
-                    response = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
-                            HttpMethod.GET, httpEntity, String.class);
-                    code = response.getStatusCode();
-                    System.out.println(code);
 
-                } catch (HttpClientErrorException e) {
-                    System.out.println("--Setting new token for risk-detail api--");
-                    String token = tokenManagement.tokenization();
-                    headers.setBearerAuth(token);
+                if (BAresponse == null) {
                     try {
-                        response = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                        System.out.println("***********");
+                        System.out.println("Retrieving business activities");
+                        BAresponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
                                 HttpMethod.GET, httpEntity, String.class);
-                    } catch (HttpServerErrorException E) {
+                        code = BAresponse.getStatusCode();
+                        System.out.println(code);
+
+                    } catch (HttpClientErrorException e) {
+                        System.out.println("--Setting new token for risk-detail api--");
+                        String token = tokenManagement.tokenization();
+                        headers.setBearerAuth(token);
+                        try {
+                            BAresponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                                    HttpMethod.GET, httpEntity, String.class);
+                        } catch (HttpServerErrorException E) {
+                            fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
+                            break;
+                        }
+                        code = BAresponse.getStatusCode();
+                        System.out.println(code);
+                    } catch (HttpServerErrorException e) {
                         fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
                         break;
                     }
-                    code = response.getStatusCode();
-                    System.out.println(code);
-                } catch (HttpServerErrorException e) {
-                    fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
-                    break;
+                    JSONObject riskDetails = new JSONObject(BAresponse.getBody());
+                    activitiesList = riskDetails.getJSONObject("data").getJSONObject("customerCategory").getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailDataGroups").getJSONObject(0).getJSONArray("dataDetailAttributes").getJSONObject(0).getJSONArray("options");
                 }
-                JSONObject riskDetails = new JSONObject(response.getBody());
-                activitiesList = riskDetails.getJSONObject("data").getJSONObject("customerCategory").getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailDataGroups").getJSONObject(0).getJSONArray("dataDetailAttributes").getJSONObject(0).getJSONArray("options");
-
 
                 // To generate the String of business activities to display to user, as well as to update the list of excluded business activites
                 for (int i = 1; i < activitiesList.length(); i++) {
