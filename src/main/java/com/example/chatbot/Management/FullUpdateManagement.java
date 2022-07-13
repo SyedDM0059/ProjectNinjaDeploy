@@ -12,7 +12,7 @@ public class FullUpdateManagement {
     TokenManagement tokenManager = new TokenManagement();
     RestTemplate restTemplateFullUpdate = new RestTemplate();
 
-    public JSONObject FullUpdateGeneration(String cusId, String propId) {
+    public void FullUpdateGeneration(String cusId, String propId) {
 
         HttpHeaders FullUpdateAuthHeaders = authHeadersManagement.AuthHeaders("4330");
         String tok = tokenManager.CusPropFullTokenization();
@@ -262,11 +262,8 @@ public class FullUpdateManagement {
                 "   \"baseBundleId\":\"620db4ca930b8e4c589482b5\"\n" +
                 "}", FullUpdateAuthHeaders);
 
-        ResponseEntity<String> fullUpdateResponse = restTemplateFullUpdate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
+        restTemplateFullUpdate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
                 propId +
                 "/full-update", HttpMethod.PUT, httpEntityFullUpdate, String.class);
-        JSONObject fullUp = new JSONObject(fullUpdateResponse.getBody());
-        return fullUp;
     }
-
 }
