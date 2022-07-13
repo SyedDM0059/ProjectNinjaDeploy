@@ -26,6 +26,7 @@ public class DialogflowFulfillment {
     ProposalIdManagement proposalIdManager = new ProposalIdManagement();
     FullUpdateManagement fullUpdateManagement = new FullUpdateManagement();
     AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
+    HttpHeaders reCalcHeaders = authHeadersManagement.AuthHeadersNoLength();
     JSONArray activitiesList;
     public JSONObject fulfillment(JSONObject payload) {
 
@@ -49,76 +50,37 @@ public class DialogflowFulfillment {
 
         switch (intent) {
             case "Welcome":
+                // Use welcome intent to initialise new user
+
                 if (!userInfo.has(user)) {
                     userInfo.put(user, new JSONObject("{\"BA\":0,\"Exposure\":0, \"BizActs\":\"\", \"Exp\":\"\", \"CustomerId\":\"\", \"ProposalId\":\"\", \"turnover\":0}"));
-                    try{
-                        System.out.println("***********");
+                    try {
+                        System.out.println("Initialising new user");
 
                         String cusId = customerIdManager.customerIdGeneration();
                         //Update UserInfo with CustomerId
                         userInfo.getJSONObject(user).put("CustomerId", cusId);
-//                        System.out.println(userInfo);
-
-                        //GetProposalId
-                        //ProposalId Generated!
+                        System.out.println(user + " customerId: " + cusId);
                         String propId = proposalIdManager.proposalIdGeneration(cusId);
-                        //lobId
-//                    String lobId = proposalId.getJSONObject("data").getString("lobId");
-//                        System.out.println("-----------");
-//                        System.out.println(propId);
-//                    System.out.println("-----------");
-//                    System.out.println(lobId);
                         //Update userInfo with ProposalId
                         userInfo.getJSONObject(user).put("ProposalId", propId);
-//                        System.out.println("-----------");
-//                        System.out.println(userInfo);
-//                        System.out.println("-----------");
-//                    //FullUpdate
-                        JSONObject fullUp = fullUpdateManagement.FullUpdateGeneration(cusId, propId);
-                        System.out.println(fullUp);
-                        System.out.println("-----------");
+                        System.out.println(user + " proposalId: " + propId);
 
-                    } catch(HttpClientErrorException e){
-                        System.out.println("Not working client error");
+                        //FullUpdate
+                        fullUpdateManagement.FullUpdateGeneration(cusId, propId);
+                        System.out.println("Full update done");
 
-                    } catch (HttpServerErrorException e){
-                        System.out.println("Not working");
+                    } catch (HttpClientErrorException | HttpServerErrorException e) {
+                        fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
                         break;
                     }
                 } else {
-                    userInfo.getJSONObject(user).put("BA",0);
-                    userInfo.getJSONObject(user).put("Exposure",0);
-                    userInfo.getJSONObject(user).put("BizActs","");
-                    userInfo.getJSONObject(user).put("Exp","");
-                    userInfo.getJSONObject(user).put("turnover",0);
+                    userInfo.getJSONObject(user).put("BA", 0);
+                    userInfo.getJSONObject(user).put("Exposure", 0);
+                    userInfo.getJSONObject(user).put("BizActs", "");
+                    userInfo.getJSONObject(user).put("Exp", "");
+                    userInfo.getJSONObject(user).put("turnover", 0);
                 }
-
-                HttpEntity<String> httpEntity = new HttpEntity<>("", headers);
-
-                // Retrieve the risk details from the DCM risk details API
-                HttpStatus code;
-                ResponseEntity<String> response;
-                try {
-                    System.out.println("***********");
-                    response = restTemplate.exchange("https://product-service-dev.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
-                            HttpMethod.GET, httpEntity, String.class);
-                    code = response.getStatusCode();
-                    System.out.println(code);
-
-                } catch (HttpClientErrorException e)  {
-                    System.out.println("--Setting new token--");
-                    String token = tokenManagement.tokenization();
-                    headers.setBearerAuth(token);
-                    response = restTemplate.exchange("https://product-service-dev.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
-                            HttpMethod.GET, httpEntity, String.class);
-                    code = response.getStatusCode();
-                    System.out.println(code);
-                } catch (HttpServerErrorException e){
-                    System.out.println("Not working");
-                    break;
-                }
-                JSONObject riskDetails = new JSONObject(response.getBody());
-                activitiesList = riskDetails.getJSONObject("data").getJSONObject("customerCategory").getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailDataGroups").getJSONObject(0).getJSONArray("dataDetailAttributes").getJSONObject(0).getJSONArray("options");
 
                 break;
             case "BA":
@@ -166,13 +128,46 @@ public class DialogflowFulfillment {
             case "Welcome - yes":
             case "reset":
 
-                userInfo.getJSONObject(user).put("BA",0);
-                userInfo.getJSONObject(user).put("Exposure",0);
-                userInfo.getJSONObject(user).put("BizActs","");
-                userInfo.getJSONObject(user).put("Exp","");
-                userInfo.getJSONObject(user).put("turnover",0);
+                userInfo.getJSONObject(user).put("BA", 0);
+                userInfo.getJSONObject(user).put("Exposure", 0);
+                userInfo.getJSONObject(user).put("BizActs", "");
+                userInfo.getJSONObject(user).put("Exp", "");
+                userInfo.getJSONObject(user).put("turnover", 0);
 
                 StringBuilder BizActsString = new StringBuilder("Please enter your business activity and its corresponding percentage (eg. Retail: 20%/ B0001: 30%):\n\n");
+
+                HttpEntity<String> httpEntity = new HttpEntity<>("", headers);
+
+                // Retrieve the risk details from the DCM risk details API
+                HttpStatus code;
+                ResponseEntity<String> response;
+                try {
+                    System.out.println("***********");
+                    response = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                            HttpMethod.GET, httpEntity, String.class);
+                    code = response.getStatusCode();
+                    System.out.println(code);
+
+                } catch (HttpClientErrorException e) {
+                    System.out.println("--Setting new token for risk-detail api--");
+                    String token = tokenManagement.tokenization();
+                    headers.setBearerAuth(token);
+                    try {
+                        response = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                                HttpMethod.GET, httpEntity, String.class);
+                    } catch (HttpServerErrorException E) {
+                        fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
+                        break;
+                    }
+                    code = response.getStatusCode();
+                    System.out.println(code);
+                } catch (HttpServerErrorException e) {
+                    fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
+                    break;
+                }
+                JSONObject riskDetails = new JSONObject(response.getBody());
+                activitiesList = riskDetails.getJSONObject("data").getJSONObject("customerCategory").getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailDataGroups").getJSONObject(0).getJSONArray("dataDetailAttributes").getJSONObject(0).getJSONArray("options");
+
 
                 // To generate the String of business activities to display to user, as well as to update the list of excluded business activites
                 for (int i = 1; i < activitiesList.length(); i++) {
@@ -198,23 +193,63 @@ public class DialogflowFulfillment {
                 break;
 
             case "Name":
-                String name = params.getJSONObject("person").getString("name");
+                userInfo.getJSONObject(user).put("name", params.getJSONObject("person").getString("name"));
+
+
+                objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
 
                 fulfillment.put("outputContexts", nameFollowUpContext);
-                fulfillment.put("fulfillmentText", "Hi " + name + "!\nYour current number is " + user.split(":")[1] + ",\nwould you like to enter a new number?");
+                fulfillment.put("fulfillmentText", "Hi " + userInfo.getJSONObject(user).getString("name") + "!\nYour current number is "
+                        + user.split(":")[1] + ",\nwould you like to enter a new number?");
                 break;
             case "Email":
 
                 System.out.println("User: " + userInfo.getJSONObject(user));
-                objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
 
-                httpEntity = new HttpEntity<>("", authHeadersManagement.AuthHeadersNoLength());
-                ResponseEntity<String> resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
-                                userInfo.getJSONObject(user).getString("ProposalId") +
-                                "/re-calculate",
-                        HttpMethod.GET, httpEntity, String.class);
-                JSONObject proposal = new JSONObject(resp.getBody());
-                System.out.println(proposal.getJSONObject("quotations"));
+                httpEntity = new HttpEntity<>("", reCalcHeaders);
+
+                ResponseEntity<String> resp;
+                try {
+                    resp = restTemplate.exchange("https://uat.apis.discovermarket.com/proposal/v2/proposals/" +
+                                    userInfo.getJSONObject(user).getString("ProposalId") +
+                                    "/re-calculate",
+                            HttpMethod.GET, httpEntity, String.class);
+                } catch (HttpClientErrorException e)  {
+                    System.out.println("--Setting new token for re-calc api--");
+                    reCalcHeaders.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                    try {
+                        resp = restTemplate.exchange("https://uat.apis.discovermarket.com/proposal/v2/proposals/" +
+                                        userInfo.getJSONObject(user).getString("ProposalId") +
+                                        "/re-calculate",
+                                HttpMethod.GET, httpEntity, String.class);
+                    } catch (HttpServerErrorException E){
+                        System.out.println("DCM SERVER ERROR");
+                        fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
+                        break;
+                    }
+                    code = resp.getStatusCode();
+                    System.out.println(code);
+                } catch (HttpServerErrorException e){
+                    System.out.println("DCM SERVER ERROR");
+                    fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
+                    break;
+                }
+
+                JSONObject proposal = new JSONObject(resp.getBody()).getJSONObject("data");
+
+                StringBuilder quoteString = new StringBuilder();
+                quoteString.append("Thank you, here are your quotes:\n\n");
+
+                quoteString.append("Standard").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(0).getFloat("totalPremium"))).append("\n");
+                quoteString.append("Silver").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(1).getFloat("totalPremium"))).append("\n");
+                quoteString.append("Gold").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(2).getFloat("totalPremium"))).append("\n");
+                quoteString.append("Platinum").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(3).getFloat("totalPremium"))).append("\n");
+
+                quoteString.append("\nPlease follow the link sent to you by email for the full details of your quote." +
+                        "\nThank you for choosing discovermarket!");
+
+                fulfillment.put("fulfillmentText", quoteString);
+
                 break;
         }
         return fulfillment;

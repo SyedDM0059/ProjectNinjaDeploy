@@ -6,6 +6,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
@@ -14,6 +16,7 @@ public class ObjectTypesGenerator {
     TokenManagement tokenManager = new TokenManagement();
     RestTemplate restTemplate = new RestTemplate();
     AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
+    HttpHeaders headers = authHeadersManagement.AuthHeaders("1537");
     public void generateObjectTypes(JSONObject usersInfo, Map<String, String> bizActivities) {
 
         JSONObject objectTypes = new JSONObject("{\"objectTypes\":[{\"objectTypeIdentifier\":\"620e07fd1214a58016490e5a\",\"objectTypeDescription\":\"Business\",\"riskDetailsDataGroups\":[{\"dataGroupIdentifier\":\"621067fc1214a58016490ea1\",\"dataGroupName\":\"Business Activity\",\"dataGroupAttributes\":[],\"dataDetailAttributes\":[]},{\"dataGroupIdentifier\":\"6210681f1214a58016490ea3\",\"dataGroupName\":\"Financial\",\"dataGroupAttributes\":[],\"dataDetailAttributes\":[[{\"attributeIdentifier\":\"620e4b861214a58016490e72\",\"attributeName\":\"Estimated Turnover for Current Year\",\"value\":\"\",\"category\":\"\"}]]},{\"dataGroupIdentifier\":\"6210684a1214a58016490ea5\",\"dataGroupName\":\"Exposure\",\"dataGroupAttributes\":[],\"dataDetailAttributes\":[[{\"attributeIdentifier\":\"620e64e01214a58016490e7a\",\"attributeName\":\"Domestic\",\"value\":\"0\",\"category\":\"\"}, {\"attributeIdentifier\":\"620e64f21214a58016490e7c\",\"attributeName\":\"US/Canada\",\"value\":\"0\",\"category\":\"\"}, {\"attributeIdentifier\":\"620e65031214a58016490e7e\",\"attributeName\":\"Australia/NZ\",\"value\":\"0\",\"category\":\"\"}, {\"attributeIdentifier\":\"620e65161214a58016490e80\",\"attributeName\":\"Rest of the world\",\"value\":\"0\",\"category\":\"\"}, {\"attributeIdentifier\":\"620e653a1214a58016490e82\",\"attributeName\":\"By clicking this checkbox, I agree the business does not operate in sanctioned countries.\",\"value\":\"true\",\"category\":\"\"}]]}],\"riskDetailsQuestions\":[]}]}");
@@ -45,15 +48,27 @@ public class ObjectTypesGenerator {
             String attributeName = objectTypes.getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailsDataGroups").getJSONObject(2).getJSONArray("dataDetailAttributes").getJSONArray(0).getJSONObject(i).getString("attributeName");
             objectTypes.getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailsDataGroups").getJSONObject(2).getJSONArray("dataDetailAttributes").getJSONArray(0).getJSONObject(i).put("value", exposure.getString(attributeName));
         }
-        HttpHeaders headers = authHeadersManagement.AuthHeaders("1537");
-        headers.setBearerAuth(tokenManager.CusPropFullTokenization());
-        HttpEntity<String> httpEntity = new HttpEntity<>("", headers);
+
         objectTypes.getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailsDataGroups").getJSONObject(1).getJSONArray("dataDetailAttributes").getJSONArray(0).getJSONObject(0).put("value", String.valueOf(usersInfo.getInt("turnover")));
-        ResponseEntity<String> objectTypeResponse = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
-                        usersInfo.getString("ProposalId") +
-                        "/object-types",
-                HttpMethod.PUT, httpEntity, String.class);
+        HttpEntity<String> httpEntity = new HttpEntity<>(objectTypes.toString(), headers);
+        try {
+            restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
+                            usersInfo.getString("ProposalId") +
+                            "/object-types",
+                    HttpMethod.PUT, httpEntity, String.class);
+        } catch (HttpClientErrorException e) {
+            System.out.println("--Setting new token for object types api--");
+            headers.setBearerAuth(tokenManager.CusPropFullTokenization());
+            try {
+                restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
+                                usersInfo.getString("ProposalId") +
+                                "/object-types",
+                        HttpMethod.PUT, httpEntity, String.class);
+            } catch (HttpServerErrorException E) {
+                System.out.println("Server issues");
+            }
+        } catch (HttpServerErrorException e) {
+            System.out.println("Server issues");
+        }
     }
-
-
 }
