@@ -1,6 +1,7 @@
 package com.example.chatbot;
 
 import com.example.chatbot.Management.*;
+import com.google.api.Http;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.*;
@@ -207,7 +208,8 @@ public class DialogflowFulfillment {
                         + user.split(":")[1] + ",\nwould you like to enter a new number?");
                 break;
             case "Email":
-
+                userInfo.getJSONObject(user).put("email", params.getString("Email"));
+                System.out.println("----");
                 System.out.println("User: " + userInfo.getJSONObject(user));
 
                 httpEntity = new HttpEntity<>("", reCalcHeaders);
@@ -253,6 +255,91 @@ public class DialogflowFulfillment {
                         "\nThank you for choosing discovermarket!");
 
                 fulfillment.put("fulfillmentText", quoteString);
+
+                //Refresh Token
+                headers = authHeadersManagement.AuthHeadersNoLength();
+                httpEntity = new HttpEntity<>("",headers);
+                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/common/v2/tokens/validate/a4e5b33319273003eb6f47a663049af8d62fcbd3",
+                        HttpMethod.GET, httpEntity, String.class);
+                JSONObject mainBody = new JSONObject(resp.getBody());
+                String Rid = mainBody.getString("id");
+                JSONObject parameters = mainBody.getJSONObject("params");
+                JSONObject tenantInfo = mainBody.getJSONObject("tenantInfo");
+                System.out.println("----");
+                System.out.println(Rid);
+                System.out.println("----");
+                System.out.println(parameters);
+                System.out.println("----");
+                System.out.println(tenantInfo);
+                System.out.println("----");
+
+                //token API
+                headers = authHeadersManagement.AuthHeaders("923");
+                headers.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                httpEntity = new HttpEntity<>("{\n" +
+                        "   \"id\":\"" +
+                        Rid +//correct
+                        "\",\n" +
+                        "   \"token\":\"a4e5b33319273003eb6f47a663049af8d62fcbd3\",\n" + //same
+                        "   \"noExpiry\":true,\n" +
+                        "   \"expiryDate\":\"2022-05-12T04:18:29.674+00:00\",\n" +
+                        "   \"tokenDatetime\":\"2022-05-12T04:23:41.789+00:00\",\n" +
+                        "   \"tokenUserId\":\"60dc72afbb70767572d556ce\",\n" +
+                        "   \"params\":{\n" +
+                        "      \"tenantIdentifier\":\"" +
+                        parameters.getString("tenantIdentifier") + //correct
+                        "\",\n" +
+                        "      \"redirectURL\":\"\",\n" +
+                        "      \"userIdentifier\":\"\",\n" +
+                        "      \"productIdentifier\":\"620db4ca930b8e4c589482b5\",\n" + //same
+                        "      \"objectTypeIdentifier\":\"620e07fd1214a58016490e5a\",\n" + //same
+                        "      \"customerCategoryIdentifier\":\"620d23b8aa366a52e2814394\",\n" + //same
+                        "      \"proposalIdentifier\":\"" +
+                        userInfo.getJSONObject(user).getString("ProposalId") + //correct
+                        "\",\n" +
+                        "      \"loginMethodIdentifier\":\"" +
+                        parameters.getString("loginMethodIdentifier") + //correct
+                        "\",\n" +
+                        "      \"loginMethodName\":\"Anonymous\",\n" + //same
+                        "      \"lobIdentifier\":\"61babd043571dd6f65eef3d6\",\n" + //same
+                        "      \"info\":\"Tenant 5 Anonymous Cyber Globe\"\n" + //same
+                        "   },\n" +
+                        "   \"tenantInfo\":\n" +
+                        tenantInfo +
+                        "}",headers);
+                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/common/v2/tokens",
+                        HttpMethod.POST, httpEntity, String.class);
+                JSONObject body = new JSONObject(resp.getBody()).getJSONObject("data");
+                String magicToken = body.getString("token");
+                String tenantId = body.getJSONObject("params").getString("tenantIdentifier");
+                System.out.println("----");
+                System.out.println(tenantId);
+                System.out.println("----");
+                System.out.println(magicToken);
+
+                //Email API
+                headers = authHeadersManagement.AuthHeaders("270");
+                headers.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                httpEntity = new HttpEntity<>("{\n" +
+                        "   \"code\":\"email-quote\",\n" +
+                        "   \"tenantId\":\"" +
+                        tenantId +
+                        "\",\n" +
+                        "   \"toEmail\":\"" +
+                        userInfo.getJSONObject(user).getString("email") +
+                        "\",\n" +
+                        "   \"subject\":\"Discovermarket Proposal - " +
+                        userInfo.getJSONObject(user).getString("ProposalId") +
+                        "\",\n" +
+                        "   \"params\":{\n" +
+                        "      \"proposal_link\":\"https://dcmp-dev.discovermarket.com/riskdetails/" +
+                        magicToken +
+                        "\"\n" +
+                        "   }\n" +
+                        "}",headers);
+                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/notification/v2/notification/email",
+                        HttpMethod.POST, httpEntity, String.class);
+                System.out.println(resp);
 
                 break;
         }
