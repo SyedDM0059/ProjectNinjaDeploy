@@ -70,6 +70,5 @@ public class AuthHeadersManagement extends GeneralHeaders {
         headers.add("Accept-Language", "en-US,en;q=0.9,vi;q=0.8");
         return headers;
     }
-
 }
 
