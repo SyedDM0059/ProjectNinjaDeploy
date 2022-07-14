@@ -1,7 +1,6 @@
 package com.example.chatbot;
 
 import com.example.chatbot.Management.*;
-import com.google.api.Http;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.*;
@@ -30,7 +29,9 @@ public class DialogflowFulfillment {
     AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
     HttpHeaders reCalcHeaders = authHeadersManagement.AuthHeadersNoLength();
     JSONArray activitiesList;
-    ResponseEntity<String> BAresponse = null;
+    ResponseEntity<String> BAResponse = null;
+    String tok = tokenManagement.tokenization();
+    String cusPropFullTok = tokenManagement.CusPropFullTokenization();
     public JSONObject fulfillment(JSONObject payload) {
 
         // Parse the payload to retrieve the relevant information
@@ -144,33 +145,34 @@ public class DialogflowFulfillment {
                 // Retrieve the risk details from the DCM risk details API
                 HttpStatus code;
 
-                if (BAresponse == null) {
+                if (BAResponse == null) {
                     try {
                         System.out.println("***********");
                         System.out.println("Retrieving business activities");
-                        BAresponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                        headers.setBearerAuth(tok);
+                        BAResponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
                                 HttpMethod.GET, httpEntity, String.class);
-                        code = BAresponse.getStatusCode();
+                        code = BAResponse.getStatusCode();
                         System.out.println(code);
 
                     } catch (HttpClientErrorException e) {
                         System.out.println("--Setting new token for risk-detail api--");
-                        String token = tokenManagement.tokenization();
-                        headers.setBearerAuth(token);
+                        tok = tokenManagement.tokenization();
+                        headers.setBearerAuth(tok);
                         try {
-                            BAresponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                            BAResponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
                                     HttpMethod.GET, httpEntity, String.class);
                         } catch (HttpServerErrorException E) {
                             fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
                             break;
                         }
-                        code = BAresponse.getStatusCode();
+                        code = BAResponse.getStatusCode();
                         System.out.println(code);
                     } catch (HttpServerErrorException e) {
                         fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
                         break;
                     }
-                    JSONObject riskDetails = new JSONObject(BAresponse.getBody());
+                    JSONObject riskDetails = new JSONObject(BAResponse.getBody());
                     activitiesList = riskDetails.getJSONObject("data").getJSONObject("customerCategory").getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailDataGroups").getJSONObject(0).getJSONArray("dataDetailAttributes").getJSONObject(0).getJSONArray("options");
                 }
 
@@ -207,7 +209,7 @@ public class DialogflowFulfillment {
                 fulfillment.put("fulfillmentText", "Hi " + userInfo.getJSONObject(user).getString("name") + "!\nYour current number is "
                         + user.split(":")[1] + ",\nwould you like to enter a new number?");
                 break;
-            case "Email":
+            case "Email 0":
                 userInfo.getJSONObject(user).put("email", params.getString("Email"));
                 System.out.println("----");
                 System.out.println("User: " + userInfo.getJSONObject(user));
@@ -216,13 +218,15 @@ public class DialogflowFulfillment {
 
                 ResponseEntity<String> resp;
                 try {
+                    reCalcHeaders.setBearerAuth(cusPropFullTok);
                     resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
                                     userInfo.getJSONObject(user).getString("ProposalId") +
                                     "/re-calculate",
                             HttpMethod.GET, httpEntity, String.class);
                 } catch (HttpClientErrorException e)  {
                     System.out.println("--Setting new token for re-calc api--");
-                    reCalcHeaders.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                    cusPropFullTok = tokenManagement.CusPropFullTokenization();
+                    reCalcHeaders.setBearerAuth(cusPropFullTok);
                     try {
                         resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
                                         userInfo.getJSONObject(user).getString("ProposalId") +
@@ -241,106 +245,102 @@ public class DialogflowFulfillment {
                     break;
                 }
 
-                JSONObject proposal = new JSONObject(resp.getBody()).getJSONObject("data");
+                userInfo.getJSONObject(user).put("proposal", new JSONObject(resp.getBody()).getJSONObject("data"));
+                fulfillment.put("followupEventInput", new JSONObject("{\"name\": \"Email1\"}"));
 
-                StringBuilder quoteString = new StringBuilder();
-                quoteString.append("Thank you, here are your quotes:\n\n");
+                break;
 
-                quoteString.append("Standard").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(0).getFloat("totalPremium"))).append("\n");
-                quoteString.append("Silver").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(1).getFloat("totalPremium"))).append("\n");
-                quoteString.append("Gold").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(2).getFloat("totalPremium"))).append("\n");
-                quoteString.append("Platinum").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(3).getFloat("totalPremium"))).append("\n");
+            case "Email 1":
 
-                quoteString.append("\nPlease follow the link sent to you by email for the full details of your quote." +
-                        "\nThank you for choosing discovermarket!");
+                userInfo.getJSONObject(user).put("quoteString", "Thank you, here are your quotes:\n\nStandard --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(0).getFloat("totalPremium")) +
+                        "\nSilver --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(1).getFloat("totalPremium"))  +
+                        "\nGold --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(2).getFloat("totalPremium")) +
+                        "\nPlatinum --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(3).getFloat("totalPremium")) +
+                        "\nWould you like to receive the full details of the quote in an email sent to " + userInfo.getJSONObject(user).getString("email") + "?");
+                fulfillment.put("fulfillmentText", userInfo.getJSONObject(user).getString("quoteString"));
+                break;
 
-                fulfillment.put("fulfillmentText", quoteString);
-                fulfillment.put("followupEventInput", new JSONObject("{\"name\": \"sendEmail\"}"));
+            case "Email 1 - yes":
+
                 //Refresh Token
-//                headers = authHeadersManagement.AuthHeadersNoLength();
-//                httpEntity = new HttpEntity<>("",headers);
-//                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/common/v2/tokens/validate/a4e5b33319273003eb6f47a663049af8d62fcbd3",
-//                        HttpMethod.GET, httpEntity, String.class);
-//                JSONObject mainBody = new JSONObject(resp.getBody());
-//                String Rid = mainBody.getString("id");
-//                JSONObject parameters = mainBody.getJSONObject("params");
-//                JSONObject tenantInfo = mainBody.getJSONObject("tenantInfo");
-//                System.out.println("----");
-//                System.out.println(Rid);
-//                System.out.println("----");
-//                System.out.println(parameters);
-//                System.out.println("----");
-//                System.out.println(tenantInfo);
-//                System.out.println("----");
-//
-//                //token API
-//                headers = authHeadersManagement.AuthHeaders("923");
-//                headers.setBearerAuth(tokenManagement.CusPropFullTokenization());
-//                httpEntity = new HttpEntity<>("{\n" +
-//                        "   \"id\":\"" +
-//                        Rid +//correct
-//                        "\",\n" +
-//                        "   \"token\":\"a4e5b33319273003eb6f47a663049af8d62fcbd3\",\n" + //same
-//                        "   \"noExpiry\":true,\n" +
-//                        "   \"expiryDate\":\"2022-05-12T04:18:29.674+00:00\",\n" +
-//                        "   \"tokenDatetime\":\"2022-05-12T04:23:41.789+00:00\",\n" +
-//                        "   \"tokenUserId\":\"60dc72afbb70767572d556ce\",\n" +
-//                        "   \"params\":{\n" +
-//                        "      \"tenantIdentifier\":\"" +
-//                        parameters.getString("tenantIdentifier") + //correct
-//                        "\",\n" +
-//                        "      \"redirectURL\":\"\",\n" +
-//                        "      \"userIdentifier\":\"\",\n" +
-//                        "      \"productIdentifier\":\"620db4ca930b8e4c589482b5\",\n" + //same
-//                        "      \"objectTypeIdentifier\":\"620e07fd1214a58016490e5a\",\n" + //same
-//                        "      \"customerCategoryIdentifier\":\"620d23b8aa366a52e2814394\",\n" + //same
-//                        "      \"proposalIdentifier\":\"" +
-//                        userInfo.getJSONObject(user).getString("ProposalId") + //correct
-//                        "\",\n" +
-//                        "      \"loginMethodIdentifier\":\"" +
-//                        parameters.getString("loginMethodIdentifier") + //correct
-//                        "\",\n" +
-//                        "      \"loginMethodName\":\"Anonymous\",\n" + //same
-//                        "      \"lobIdentifier\":\"61babd043571dd6f65eef3d6\",\n" + //same
-//                        "      \"info\":\"Tenant 5 Anonymous Cyber Globe\"\n" + //same
-//                        "   },\n" +
-//                        "   \"tenantInfo\":\n" +
-//                        tenantInfo +
-//                        "}",headers);
-//                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/common/v2/tokens",
-//                        HttpMethod.POST, httpEntity, String.class);
-//                JSONObject body = new JSONObject(resp.getBody()).getJSONObject("data");
-//                String magicToken = body.getString("token");
-//                String tenantId = body.getJSONObject("params").getString("tenantIdentifier");
-//                System.out.println("----");
-//                System.out.println(tenantId);
-//                System.out.println("----");
-//                System.out.println(magicToken);
-//
-//                //Email API
-//                headers = authHeadersManagement.AuthHeaders("270");
-//                headers.setBearerAuth(tokenManagement.CusPropFullTokenization());
-//                httpEntity = new HttpEntity<>("{\n" +
-//                        "   \"code\":\"email-quote\",\n" +
-//                        "   \"tenantId\":\"" +
-//                        tenantId +
-//                        "\",\n" +
-//                        "   \"toEmail\":\"" +
-//                        userInfo.getJSONObject(user).getString("email") +
-//                        "\",\n" +
-//                        "   \"subject\":\"Discovermarket Proposal - " +
-//                        userInfo.getJSONObject(user).getString("ProposalId") +
-//                        "\",\n" +
-//                        "   \"params\":{\n" +
-//                        "      \"proposal_link\":\"https://dcmp-dev.discovermarket.com/riskdetails/" +
-//                        magicToken +
-//                        "\"\n" +
-//                        "   }\n" +
-//                        "}",headers);
-//                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/notification/v2/notification/email",
-//                        HttpMethod.POST, httpEntity, String.class);
-//                System.out.println(resp);
+                headers = authHeadersManagement.AuthHeadersNoLength();
+                httpEntity = new HttpEntity<>("",headers);
+                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/common/v2/tokens/validate/a4e5b33319273003eb6f47a663049af8d62fcbd3",
+                        HttpMethod.GET, httpEntity, String.class);
+                JSONObject mainBody = new JSONObject(resp.getBody());
+                String Rid = mainBody.getString("id");
+                JSONObject parameters = mainBody.getJSONObject("params");
+                JSONObject tenantInfo = mainBody.getJSONObject("tenantInfo");
+                System.out.println("----");
+                System.out.println(Rid);
+                System.out.println("----");
+                System.out.println(parameters);
+                System.out.println("----");
+                System.out.println(tenantInfo);
+                System.out.println("----");
 
+                //token API
+                headers = authHeadersManagement.AuthHeaders("923");
+                headers.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                httpEntity = new HttpEntity<>("{\n" +
+                        "   \"id\":\"" +
+                        Rid +//correct
+                        "\",\n" +
+                        "   \"token\":\"a4e5b33319273003eb6f47a663049af8d62fcbd3\",\n" + //same
+                        "   \"noExpiry\":true,\n" +
+                        "   \"expiryDate\":\"2022-05-12T04:18:29.674+00:00\",\n" +
+                        "   \"tokenDatetime\":\"2022-05-12T04:23:41.789+00:00\",\n" +
+                        "   \"tokenUserId\":\"60dc72afbb70767572d556ce\",\n" +
+                        "   \"params\":{\n" +
+                        "      \"tenantIdentifier\":\"" +
+                        parameters.getString("tenantIdentifier") + //correct
+                        "\",\n" +
+                        "      \"redirectURL\":\"\",\n" +
+                        "      \"userIdentifier\":\"\",\n" +
+                        "      \"productIdentifier\":\"620db4ca930b8e4c589482b5\",\n" + //same
+                        "      \"objectTypeIdentifier\":\"620e07fd1214a58016490e5a\",\n" + //same
+                        "      \"customerCategoryIdentifier\":\"620d23b8aa366a52e2814394\",\n" + //same
+                        "      \"proposalIdentifier\":\"" +
+                        userInfo.getJSONObject(user).getString("ProposalId") + //correct
+                        "\",\n" +
+                        "      \"loginMethodIdentifier\":\"" +
+                        parameters.getString("loginMethodIdentifier") + //correct
+                        "\",\n" +
+                        "      \"loginMethodName\":\"Anonymous\",\n" + //same
+                        "      \"lobIdentifier\":\"61babd043571dd6f65eef3d6\",\n" + //same
+                        "      \"info\":\"Tenant 5 Anonymous Cyber Globe\"\n" + //same
+                        "   },\n" +
+                        "   \"tenantInfo\":\n" +
+                        tenantInfo +
+                        "}",headers);
+                resp = restTemplate.exchange("https://dev.apis.discovermarket.com/common/v2/tokens",
+                        HttpMethod.POST, httpEntity, String.class);
+                JSONObject body = new JSONObject(resp.getBody()).getJSONObject("data");
+                String magicToken = body.getString("token");
+                String tenantId = body.getJSONObject("params").getString("tenantIdentifier");
+
+                //Email API
+                headers = authHeadersManagement.AuthHeaders("270");
+                headers.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                httpEntity = new HttpEntity<>("{\n" +
+                        "   \"code\":\"email-quote\",\n" +
+                        "   \"tenantId\":\"" +
+                        tenantId +
+                        "\",\n" +
+                        "   \"toEmail\":\"" +
+                        userInfo.getJSONObject(user).getString("email") +
+                        "\",\n" +
+                        "   \"subject\":\"Discovermarket Proposal - " +
+                        userInfo.getJSONObject(user).getString("ProposalId") +
+                        "\",\n" +
+                        "   \"params\":{\n" +
+                        "      \"proposal_link\":\"https://dcmp-dev.discovermarket.com/riskdetails/" +
+                        magicToken +
+                        "\"\n" +
+                        "   }\n" +
+                        "}",headers);
+                restTemplate.exchange("https://dev.apis.discovermarket.com/notification/v2/notification/email",
+                        HttpMethod.POST, httpEntity, String.class);
                 break;
         }
         return fulfillment;

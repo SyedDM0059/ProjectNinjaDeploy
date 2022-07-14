@@ -1,11 +1,11 @@
 package com.example.chatbot.Management;
 
 import org.json.JSONObject;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
+
+
+import java.net.URI;
 
 public class CustomerIdManagement {
     TokenManagement tokenManager = new TokenManagement(); // call tok
@@ -22,6 +22,7 @@ public class CustomerIdManagement {
                 "[{\"locationType\":\"\",\"isPreferred\":true,\"blockNumber\":\"\",\"unitNumber\":\"\",\"addressLine1\":\"\",\"addressLine2\":\"\",\"isoCityCode\":\"\"," +
                 "\"isoCountryCode\":\"\",\"postalCode\":\"\",\"internationalTelecomCountryCode\":\"\",\"phoneNumber\":\"\",\"emailAddress\":\"\"}]}]" +
                 ",\"userLoginMethod\":\"Anonymous\"}", CustomerAuthHeaders);
+
         ResponseEntity<String> customerIdResponse = restTemplateCustomerId.exchange("https://dev.apis.discovermarket.com/customer/v2/customers",
                 HttpMethod.POST, httpEntityCustomer, String.class);
         JSONObject customerId = new JSONObject(customerIdResponse.getBody());
