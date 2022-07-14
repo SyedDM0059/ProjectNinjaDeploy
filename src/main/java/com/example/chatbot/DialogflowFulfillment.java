@@ -1,7 +1,6 @@
 package com.example.chatbot;
 
 import com.example.chatbot.Management.*;
-import com.google.api.Http;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.http.*;
@@ -30,9 +29,9 @@ public class DialogflowFulfillment {
     AuthHeadersManagement authHeadersManagement = new AuthHeadersManagement();
     HttpHeaders reCalcHeaders = authHeadersManagement.AuthHeadersNoLength();
     JSONArray activitiesList;
-    ResponseEntity<String> BAresponse = null;
-    StringBuilder quoteString;
-    JSONObject proposal;
+    ResponseEntity<String> BAResponse = null;
+    String tok = tokenManagement.tokenization();
+    String cusPropFullTok = tokenManagement.CusPropFullTokenization();
     public JSONObject fulfillment(JSONObject payload) {
 
         // Parse the payload to retrieve the relevant information
@@ -146,33 +145,34 @@ public class DialogflowFulfillment {
                 // Retrieve the risk details from the DCM risk details API
                 HttpStatus code;
 
-                if (BAresponse == null) {
+                if (BAResponse == null) {
                     try {
                         System.out.println("***********");
                         System.out.println("Retrieving business activities");
-                        BAresponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                        headers.setBearerAuth(tok);
+                        BAResponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
                                 HttpMethod.GET, httpEntity, String.class);
-                        code = BAresponse.getStatusCode();
+                        code = BAResponse.getStatusCode();
                         System.out.println(code);
 
                     } catch (HttpClientErrorException e) {
                         System.out.println("--Setting new token for risk-detail api--");
-                        String token = tokenManagement.tokenization();
-                        headers.setBearerAuth(token);
+                        tok = tokenManagement.tokenization();
+                        headers.setBearerAuth(tok);
                         try {
-                            BAresponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
+                            BAResponse = restTemplate.exchange("https://product-service-uat.discovermarket.com/v2/riskdetailinfos/619c9d2e4b0253465a797fd1/620db4ca930b8e4c589482b5",
                                     HttpMethod.GET, httpEntity, String.class);
                         } catch (HttpServerErrorException E) {
                             fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
                             break;
                         }
-                        code = BAresponse.getStatusCode();
+                        code = BAResponse.getStatusCode();
                         System.out.println(code);
                     } catch (HttpServerErrorException e) {
                         fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
                         break;
                     }
-                    JSONObject riskDetails = new JSONObject(BAresponse.getBody());
+                    JSONObject riskDetails = new JSONObject(BAResponse.getBody());
                     activitiesList = riskDetails.getJSONObject("data").getJSONObject("customerCategory").getJSONArray("objectTypes").getJSONObject(0).getJSONArray("riskDetailDataGroups").getJSONObject(0).getJSONArray("dataDetailAttributes").getJSONObject(0).getJSONArray("options");
                 }
 
@@ -218,13 +218,15 @@ public class DialogflowFulfillment {
 
                 ResponseEntity<String> resp;
                 try {
+                    reCalcHeaders.setBearerAuth(cusPropFullTok);
                     resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
                                     userInfo.getJSONObject(user).getString("ProposalId") +
                                     "/re-calculate",
                             HttpMethod.GET, httpEntity, String.class);
                 } catch (HttpClientErrorException e)  {
                     System.out.println("--Setting new token for re-calc api--");
-                    reCalcHeaders.setBearerAuth(tokenManagement.CusPropFullTokenization());
+                    cusPropFullTok = tokenManagement.CusPropFullTokenization();
+                    reCalcHeaders.setBearerAuth(cusPropFullTok);
                     try {
                         resp = restTemplate.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals/" +
                                         userInfo.getJSONObject(user).getString("ProposalId") +
@@ -243,25 +245,18 @@ public class DialogflowFulfillment {
                     break;
                 }
 
-                proposal = new JSONObject(resp.getBody()).getJSONObject("data");
+                userInfo.getJSONObject(user).put("proposal", new JSONObject(resp.getBody()).getJSONObject("data"));
                 fulfillment.put("followupEventInput", new JSONObject("{\"name\": \"Email1\"}"));
 
                 break;
 
             case "Email 1":
 
-                quoteString = new StringBuilder();
-
-                quoteString.append("Thank you, here are your quotes:\n\n");
-
-                quoteString.append("Standard").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(0).getFloat("totalPremium"))).append("\n");
-                quoteString.append("Silver").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(1).getFloat("totalPremium"))).append("\n");
-                quoteString.append("Gold").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(2).getFloat("totalPremium"))).append("\n");
-                quoteString.append("Platinum").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(3).getFloat("totalPremium"))).append("\n");
-
-                quoteString.append("\nWould you like to receive the full details of the quote in an email sent to ").append(userInfo.getJSONObject(user).getString("email")).append("?");
-
-                userInfo.getJSONObject(user).put("quoteString", quoteString.toString());
+                userInfo.getJSONObject(user).put("quoteString", "Thank you, here are your quotes:\n\nStandard --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(0).getFloat("totalPremium")) +
+                        "\nSilver --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(1).getFloat("totalPremium"))  +
+                        "\nGold --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(2).getFloat("totalPremium")) +
+                        "\nPlatinum --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(3).getFloat("totalPremium")) +
+                        "\nWould you like to receive the full details of the quote in an email sent to " + userInfo.getJSONObject(user).getString("email") + "?");
                 fulfillment.put("fulfillmentText", userInfo.getJSONObject(user).getString("quoteString"));
                 break;
 
