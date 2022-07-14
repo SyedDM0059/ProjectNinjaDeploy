@@ -255,7 +255,7 @@ public class DialogflowFulfillment {
                         "\nThank you for choosing discovermarket!");
 
                 fulfillment.put("fulfillmentText", quoteString);
-                fulfillment.put("followupEventInput", new JSONObject("{\"name\": \"sendEmail\"}"));
+//                fulfillment.put("followupEventInput", new JSONObject("{\"name\": \"sendEmail\"}"));
                 //Refresh Token
 //                headers = authHeadersManagement.AuthHeadersNoLength();
 //                httpEntity = new HttpEntity<>("",headers);
