@@ -7,6 +7,18 @@ import java.io.IOException;
 
 public class UnusedCode {
 
+
+//    quoteString = new StringBuilder();
+//
+//                quoteString.append("Thank you, here are your quotes:\n\n");
+//
+//                quoteString.append("Standard").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(0).getFloat("totalPremium"))).append("\n");
+//                quoteString.append("Silver").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(1).getFloat("totalPremium"))).append("\n");
+//                quoteString.append("Gold").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(2).getFloat("totalPremium"))).append("\n");
+//                quoteString.append("Platinum").append(" --- ").append(String.format("$%.2f", proposal.getJSONArray("quotations").getJSONObject(3).getFloat("totalPremium"))).append("\n");
+//
+//                quoteString.append("\nWould you like to receive the full details of the quote in an email sent to ").append(userInfo.getJSONObject(user).getString("email")).append("?");
+
 //        JSONObject BAtemp;
 //        JSONObject exptemp;
 //        JSONArray context = new JSONArray();
