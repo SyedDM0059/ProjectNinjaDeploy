@@ -22,7 +22,7 @@ public class ProposalIdManagement {
                 "\"," +
                 "\"lobId\":\"61babd043571dd6f65eef3d6\",\"taxRate\":10}", ProposalAuthHeaders); //By right lobId is CyberQuote LOB
 
-        ResponseEntity<String> proposalIdResponse = restTemplateProposalId.exchange("https://dev.apis.discovermarket.com/proposal/v2/proposals",
+        ResponseEntity<String> proposalIdResponse = restTemplateProposalId.exchange("https://uat.apis.discovermarket.com/proposal/v2/proposals",
                 HttpMethod.POST, httpEntityProposal, String.class);
         JSONObject proposalId = new JSONObject(proposalIdResponse.getBody());
         return proposalId.getJSONObject("data").getString("id");

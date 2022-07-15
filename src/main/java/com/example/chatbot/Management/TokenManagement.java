@@ -39,7 +39,7 @@ public class TokenManagement {
         headers.add("Referer", value12);
         headers.add("Accept-Language", value13);
         HttpEntity<String> httpEntityFirst = new HttpEntity<>("{\"username\":\"tobedeleted@discovermarket.com\",\"password\":\"Bud542381\",\"tenantCode\":\"TE0000001\"}", headers);
-        ResponseEntity<String> tokenCheck = restTemplate.exchange("https://dev.apis.discovermarket.com/authentication/v2/auth/login",
+        ResponseEntity<String> tokenCheck = restTemplate.exchange("https://uat.apis.discovermarket.com/authentication/v2/auth/login",
                 HttpMethod.POST, httpEntityFirst, String.class);
         JSONObject tokenize = new JSONObject(tokenCheck.getBody());
         return tokenize.getJSONObject("data").getString("token");
@@ -48,7 +48,7 @@ public class TokenManagement {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = authHeadersManagement.ReCalHeaders();
         HttpEntity<String> httpEntityFirst = new HttpEntity<>("", headers);
-        ResponseEntity<String> cusPropFullToken = restTemplate.exchange("https://dev.apis.discovermarket.com/authentication/v2/auth/login/anonymous/TE0000005",
+        ResponseEntity<String> cusPropFullToken = restTemplate.exchange("https://uat.apis.discovermarket.com/authentication/v2/auth/login/anonymous/TE0000005",
                 HttpMethod.POST, httpEntityFirst, String.class);
         JSONObject resp = new JSONObject(cusPropFullToken.getBody());
         return resp.getJSONObject("data").getString("token");
