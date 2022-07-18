@@ -193,6 +193,7 @@ public class DialogflowFulfillment {
             case "ET":
                 int turnover = params.getInt("number");
                 userInfo.getJSONObject(user).put("turnover", turnover);
+                //Ensure turnover is positive
                 if (turnover <= 0) {
                     fulfillment.put("outputContexts", turnoverContext);
                     fulfillment.put("fulfillmentText", "Annual turnover must be a positive non-zero number, please re-enter");
@@ -203,7 +204,7 @@ public class DialogflowFulfillment {
                 userInfo.getJSONObject(user).put("name", params.getJSONObject("person").getString("name"));
 
 
-                objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities);
+                objectTypesGenerator.generateObjectTypes(userInfo.getJSONObject(user), BizActivities, cusPropFullTok);
 
                 fulfillment.put("outputContexts", nameFollowUpContext);
                 fulfillment.put("fulfillmentText", "Hi " + userInfo.getJSONObject(user).getString("name") + "!\nYour current number is "
@@ -212,7 +213,7 @@ public class DialogflowFulfillment {
             case "Email 0":
                 userInfo.getJSONObject(user).put("email", params.getString("Email"));
                 System.out.println("----");
-                System.out.println("User: " + userInfo.getJSONObject(user));
+                System.out.println("User: " + user);
 
                 httpEntity = new HttpEntity<>("", reCalcHeaders);
 
@@ -256,7 +257,7 @@ public class DialogflowFulfillment {
                         "\nSilver --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(1).getFloat("totalPremium"))  +
                         "\nGold --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(2).getFloat("totalPremium")) +
                         "\nPlatinum --- " + String.format("$%.2f", userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(3).getFloat("totalPremium")) +
-                        "\nWould you like to receive the full details of the quote in an email sent to " + userInfo.getJSONObject(user).getString("email") + "?");
+                        "\n\nWould you like to receive the full details of the quote in an email sent to " + userInfo.getJSONObject(user).getString("email") + "?");
                 fulfillment.put("fulfillmentText", userInfo.getJSONObject(user).getString("quoteString"));
                 break;
 
