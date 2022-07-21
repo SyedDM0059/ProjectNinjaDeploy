@@ -188,7 +188,6 @@ public class DialogflowFulfillment {
                 }
                 fulfillment.put("outputContexts", quoteContext);
                 fulfillment.put("fulfillmentText", BizActsString.toString());
-
                 break;
             case "ET":
                 int turnover = params.getInt("number");
