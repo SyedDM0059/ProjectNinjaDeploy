@@ -7,7 +7,98 @@ import java.io.IOException;
 
 public class UnusedCode {
 
+    //LOGIC FOR MAKING THE FULL QUOTE STRING WITH ALL THE DETAILS
 
+//    httpEntity = new HttpEntity<>("", reCalcHeaders);
+//                try {
+//                    reCalcHeaders.setBearerAuth(cusPropFullTok);
+//                    resp = restTemplate.exchange("https://dev.apis.discovermarket.com/product/v2/products/620db4ca930b8e4c589482b5",
+//                            HttpMethod.GET, httpEntity, String.class);
+//                } catch (HttpClientErrorException e)  {
+//                    System.out.println("--Setting new token for base bundle api--");
+//                    cusPropFullTok = tokenManagement.CusPropFullTokenization();
+//                    reCalcHeaders.setBearerAuth(cusPropFullTok);
+//                    try {
+//                        resp = restTemplate.exchange("https://dev.apis.discovermarket.com/product/v2/products/620db4ca930b8e4c589482b5",
+//                                HttpMethod.GET, httpEntity, String.class);
+//                    } catch (HttpServerErrorException E){
+//                        System.out.println("DCM SERVER ERROR");
+//                        fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
+//                        break;
+//                    }
+//                    code = resp.getStatusCode();
+//                    System.out.println(code);
+//                } catch (HttpServerErrorException e){
+//                    System.out.println("DCM SERVER ERROR");
+//                    fulfillment.put("fulfillmentText", "We are experiencing technical difficulties, please try again later");
+//                    break;
+//                }
+//
+//                JSONArray baseBundle = new JSONObject(resp.getBody()).getJSONArray("data");
+//
+//                StringBuilder test = new StringBuilder();
+//                JSONObject test2 = new JSONObject();
+//
+//                for ( int i = 0; i < baseBundle.length(); i++) {
+//                    JSONObject temp = baseBundle.getJSONObject(i);
+//                    if (temp.getString("productTypeCode").equals("BU") || temp.getString("productTypeCode").equals("PL")) {
+//                        break;
+//                    }
+//                    test2.put(temp.getString("proposalProductGroupCode"), new JSONArray());
+//                    test2.getJSONArray(temp.getString("proposalProductGroupCode")).put(temp.getString("productName"));
+//                }
+//
+//                for (int i = 0; i < 4; i++) {
+//                   JSONArray temp = userInfo.getJSONObject(user).getJSONObject("proposal").getJSONArray("quotations").getJSONObject(i).getJSONArray("quotationDetails")
+//                            .getJSONObject(0).getJSONArray("productSelectedList");
+//                    System.out.println(i);
+//                    for ( int j = 0; j < temp.length(); j++) {
+//                        JSONObject temp2 = temp.getJSONObject(j);
+//                        if (temp2.getString("productTypeCode").equals("BU") || temp2.getString("productTypeCode").equals("PL")) {
+//                            break;
+//                        }
+//                        test2.getJSONArray(temp2.getString("proposalProductGroupCode")).put(temp2.getString("productDescription"));
+//                    }
+//                }
+//
+//                String prefix = "PPG00000";
+//                for (int i = 1; i < baseBundle.length()-1; i++) {
+//                    test.append(test2.getJSONArray(prefix + String.format("%02d", i)).getString(0));
+//
+//                }
+//
+//                System.out.println("{\"text\":{\"text\":[\"" + test + "\",\"" + test + "\",\"" + test + "\",\"" + test + "\"]}}");
+//                fulfillment.put("fulfillmentText", fulfillmentMessages.text.text[0]);
+//                fulfillment.put("fulfillmentMessages", "[{\"text\":{\"text\":[\"" + test + "\"]}}]");
+//                fulfillment.getJSONArray("fulfillmentMessages").put(new JSONObject("{\"text\":{\"text\":[\"" + test + "\"]}}"));
+//                fulfillment.getJSONArray("fulfillmentMessages").put("{\"text\":{\"text\":[" + test + "]}}");
+//                fulfillment.getJSONArray("fulfillmentMessages").put("{\"text\":{\"text\":[" + test + "]}}");
+//                fulfillment.getJSONArray("fulfillmentMessages").put("{\"text\":{\"text\":[" + test + "]}}");
+
+
+
+
+
+
+    //	@Override
+//	public void run(String... args) throws Exception {
+//		//Question qn1 = new Question("1", "why?", "23/6/2022");
+////		Question qn2 = new Question("2", "why sia?", "23/6/2022");
+////		Question qn3 = new Question("3", "why must I?", "23/6/2022");
+////		Question qn4 = new Question("4", "why why?", "23/6/2022");
+////
+////		questionRepository.save(qn1);
+////		questionRepository.save(qn2);
+////		questionRepository.save(qn3);
+////		questionRepository.save(qn4);
+//
+////		System.out.println("***********");
+////		System.out.println(childPlans.childPlans.getJSONArray("data").getJSONObject(0).getString("productDescription"));
+////		List<Question> questions = questionRepository.findAll();
+////		for(Question q : questions) {
+////			System.out.println(q.toString());
+////		}
+//	}
 //    quoteString = new StringBuilder();
 //
 //                quoteString.append("Thank you, here are your quotes:\n\n");
